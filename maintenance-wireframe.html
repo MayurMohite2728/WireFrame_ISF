@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maintenance Workflow Wireframe</title>
+  <style>
+    :root{--blue:#0e2546;--bg:#f2f5fa;--line:#d6deea;--text:#122136}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
+    .page{max-width:1200px;margin:0 auto;padding:20px}
+    .top{background:var(--blue);color:#fff;border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:end}
+    h1{margin:0;font-size:24px}.subtitle{margin-top:6px;opacity:.9}
+    select,input,textarea,button{border:1px solid #bccbe1;border-radius:8px;padding:10px;font:inherit}
+    .layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+    .card h2{margin:0 0 12px 0;font-size:18px}.grid{display:grid;gap:10px}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btn{background:var(--blue);color:#fff;font-weight:600;cursor:pointer}
+    .steps{padding-left:18px;margin:0;display:grid;gap:8px}
+    .steps li{padding:8px;border-radius:8px}
+    .steps li.active{background:#ecf4ff;border-left:4px solid #2f6adf}
+    .wide{grid-column:1/-1}
+    table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid #e6ecf5;text-align:left}
+    .pill{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+    .pending{background:#fff2ca}.approved{background:#d8f7e2}.rejected{background:#ffdede}.blocked{background:#e8edf7}
+    .actions{display:flex;gap:8px}.muted{font-size:13px;color:#3d4f6b}
+    @media (max-width:900px){.layout{grid-template-columns:1fr}.wide{grid-column:auto}}
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <div>
+      <h1>QAF Maintenance Request Wireframe</h1>
+      <div class="subtitle">Screens for request creation, assignment flow, approvals/rejections, and tracking</div>
+    </div>
+    <div>
+      <label for="role">Login as</label><br/>
+      <select id="role">
+        <option value="alan">Alan (Requester)</option>
+        <option value="salah">Salah (Coordinator)</option>
+        <option value="hamad">Hamad Al Marri (Engineer)</option>
+        <option value="malik">Malik Shoiab (Technician)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="layout">
+    <section class="card">
+      <h2>Screen 1 — Raise Request (Alan)</h2>
+      <div class="grid">
+        <div class="row2">
+          <input value="From: Intelligence and Security Unit" />
+          <select><option>Priority: Normal</option><option>High</option><option>Urgent</option></select>
+        </div>
+        <div class="row2">
+          <input value="To: Maintenance Dept" />
+          <input placeholder="Request No: SMAQ-2026-0042" />
+        </div>
+        <input placeholder="Subject: Brief description of issue" />
+        <div class="row2">
+          <input placeholder="Location/Building" />
+          <input placeholder="Floor/Room" />
+        </div>
+        <textarea rows="4" placeholder="Additional notes..."></textarea>
+        <button id="submitRequest" class="btn">Submit Request</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Screen 2–6 — Workflow per Role</h2>
+      <div class="muted" id="activeUser">Current user: Alan</div>
+      <ol class="steps" id="steps"></ol>
+    </section>
+
+    <section class="card wide">
+      <h2>Track Maintenance Request / My Tasks</h2>
+      <div class="muted">All users can see tasks. Only assigned user can approve/reject pending task.</div>
+      <table>
+        <thead><tr><th>ID</th><th>Task</th><th>Assignee</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="taskBody"></tbody>
+      </table>
+    </section>
+  </div>
+</div>
+
+<script>
+const flow = [
+  {step:1, role:'alan', title:'Initiate as Alan', action:'Fill maintenance form and submit request'},
+  {step:2, role:'salah', title:'Salah assigns Wing 4', action:'Wing 4 → Lt-1 Eng Hamad Al Marri (hamadm)'},
+  {step:3, role:'hamad', title:'Hamad assigns Technician', action:'Assign Malik Shoiab (malik)'},
+  {step:4, role:'malik', title:'Malik performs work', action:'Add comments, start/end dates, updates'},
+  {step:5, role:'hamad', title:'Hamad reviews completion', action:'Approve or reject technician closure'},
+  {step:6, role:'alan', title:'Alan final acknowledgement', action:'Final acceptance or reopen if needed'}
+];
+
+const tasks = [
+  {id:'T-101', task:'Submit Request', assignee:'Alan', role:'alan', status:'Pending'},
+  {id:'T-102', task:'Assign Wing 4', assignee:'Salah', role:'salah', status:'Blocked'},
+  {id:'T-103', task:'Assign Malik Technician', assignee:'Hamad', role:'hamad', status:'Blocked'},
+  {id:'T-104', task:'Add dates + comments', assignee:'Malik', role:'malik', status:'Blocked'},
+  {id:'T-105', task:'Engineer Approval', assignee:'Hamad', role:'hamad', status:'Blocked'},
+  {id:'T-106', task:'Final Acknowledgement', assignee:'Alan', role:'alan', status:'Blocked'}
+];
+
+const roleSelect = document.getElementById('role');
+const taskBody = document.getElementById('taskBody');
+const stepsEl = document.getElementById('steps');
+const activeUser = document.getElementById('activeUser');
+
+function renderSteps() {
+  const role = roleSelect.value;
+  activeUser.textContent = 'Current user: ' + roleSelect.options[roleSelect.selectedIndex].text;
+  stepsEl.innerHTML = flow.map(f => `<li class="${f.role===role?'active':''}"><b>Step ${f.step}:</b> ${f.title}<br/><span class="muted">${f.action}</span></li>`).join('');
+}
+
+function setStatus(id, status){
+  const idx = tasks.findIndex(t=>t.id===id);
+  if(idx===-1) return;
+  tasks[idx].status = status;
+  if(status==='Approved' && tasks[idx+1] && tasks[idx+1].status==='Blocked') tasks[idx+1].status='Pending';
+  renderTasks();
+}
+
+function renderTasks(){
+  const role = roleSelect.value;
+  taskBody.innerHTML = tasks.map(t=>{
+    const canAct = t.role===role && t.status==='Pending';
+    return `<tr>
+      <td>${t.id}</td><td>${t.task}</td><td>${t.assignee}</td>
+      <td><span class="pill ${t.status.toLowerCase()}">${t.status}</span></td>
+      <td class="actions">
+        <button ${canAct?'':'disabled'} onclick="setStatus('${t.id}','Approved')">Approve</button>
+        <button ${canAct?'':'disabled'} onclick="setStatus('${t.id}','Rejected')">Reject</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+roleSelect.addEventListener('change', ()=>{renderSteps();renderTasks();});
+document.getElementById('submitRequest').addEventListener('click', ()=>alert('Wireframe: request captured and Task T-101 can be approved by Alan.'));
+renderSteps();renderTasks();
+</script>
+</body>
+</html>
